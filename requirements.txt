@@ -1,6 +1,6 @@
 openai
 streamlit
-chromadb
+chromadb==0.4.22
 tiktoken
 python-dotenv
 firecrawl-py
