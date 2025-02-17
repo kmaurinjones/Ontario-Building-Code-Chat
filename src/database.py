@@ -23,14 +23,7 @@ class VectorStore:
         self.embedding_generator = EmbeddingGenerator()
         
         # Initialize ChromaDB with persistence
-        self.client = chromadb.PersistentClient(
-            path=str(self.db_path),
-            settings=Settings(
-                anonymized_telemetry=False,
-                allow_reset=True,
-                is_persistent=True
-            )
-        )
+        self.client = chromadb.Client(path=str(self.db_path))
         
         try:
             # Try to get existing collection
