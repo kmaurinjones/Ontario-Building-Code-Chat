@@ -156,7 +156,8 @@ class ChatBot:
             response_stream = self.client.chat.completions.create(
                 model=self.model,
                 messages=messages,
-                stream=True
+                stream=True,
+                temperature=0
             )
             
             # Collect full response while streaming
@@ -174,7 +175,8 @@ class ChatBot:
             final_response = self.client.chat.completions.create(
                 model=self.model,
                 messages=messages,
-                stream=False
+                stream=False,
+                temperature=0
             )
             
             # Yield the token usage as the final item

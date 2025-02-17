@@ -123,6 +123,10 @@ if "total_prompt_tokens" not in st.session_state:
     st.session_state.total_prompt_tokens = 0
 if "total_completion_tokens" not in st.session_state:
     st.session_state.total_completion_tokens = 0
+if "total_processed_tokens" not in st.session_state:
+    st.session_state.total_processed_tokens = 0
+if "current_conversation_tokens" not in st.session_state:
+    st.session_state.current_conversation_tokens = 0
 
 # Initialize token display placeholder in session state
 if "token_display" not in st.session_state:
@@ -156,6 +160,9 @@ def update_token_display():
         st.session_state.token_display.markdown(f"""
         ### Token Usage
         
+        **Total Processed Tokens:** {st.session_state.total_processed_tokens:,}  
+        **Current Conversation Tokens:** {st.session_state.current_conversation_tokens:,}  
+        
         **Input Tokens:** {st.session_state.total_prompt_tokens:,}  
         **Output Tokens:** {st.session_state.total_completion_tokens:,}  
         **Total Tokens:** {st.session_state.total_prompt_tokens + st.session_state.total_completion_tokens:,}
@@ -180,6 +187,8 @@ with st.sidebar:
         st.session_state.messages = []
         st.session_state.total_prompt_tokens = 0
         st.session_state.total_completion_tokens = 0
+        st.session_state.total_processed_tokens = 0
+        st.session_state.current_conversation_tokens = 0
         st.rerun()
     
     st.divider()
@@ -267,6 +276,7 @@ def process_message(query: str):
             # Update token counts
             st.session_state.total_prompt_tokens += query_tokens["prompt_tokens"]
             st.session_state.total_completion_tokens += query_tokens["completion_tokens"]
+            st.session_state.total_processed_tokens += query_tokens["total_tokens"]
             update_token_display()  # Update display after query expansion
         
         # Check if we got meaningful search queries (more than just the original query)
@@ -290,6 +300,10 @@ def process_message(query: str):
                 # Calculate total words in chunks
                 total_words = sum(len(chunk.split()) for chunk in chunks)
                 
+                # Count tokens in chunks and add to total processed
+                chunk_tokens = sum(count_tokens(chunk) for chunk in chunks)
+                st.session_state.total_processed_tokens += chunk_tokens
+                
                 # Show found sections
                 with st.expander(f"📚 Relevant building code information ({total_words} words)", expanded=False):
                     for i, chunk in enumerate(chunks, 1):
@@ -302,16 +316,23 @@ def process_message(query: str):
                 context = "\n\n".join(chunks)
             else:
                 context = ""
+                chunk_tokens = 0
         else:
             # No meaningful queries generated, skip search
             chunks = []
             context = ""
+            chunk_tokens = 0
         
         # Prepare messages for chat
         messages = [
             {"role": "system", "content": st.session_state.chatbot.generate_system_prompt(context)},
             {"role": "user", "content": query}
         ]
+        
+        # Calculate current conversation tokens (excluding RAG context)
+        conversation_tokens = sum(count_tokens(msg["content"]) for msg in st.session_state.messages)
+        conversation_tokens += count_tokens(query)  # Add current query
+        st.session_state.current_conversation_tokens = conversation_tokens
         
         # Stream response
         with st.spinner("💭 Generating response..."):
@@ -336,6 +357,11 @@ def process_message(query: str):
                 print(f"Before update - Prompt tokens: {st.session_state.total_prompt_tokens}, Completion tokens: {st.session_state.total_completion_tokens}")  # Debug log
                 st.session_state.total_prompt_tokens += last_chunk["prompt_tokens"]
                 st.session_state.total_completion_tokens += last_chunk["completion_tokens"]
+                st.session_state.total_processed_tokens += last_chunk["total_tokens"]
+                
+                # Update current conversation tokens with the response
+                st.session_state.current_conversation_tokens += count_tokens(response)
+                
                 print(f"After update - Prompt tokens: {st.session_state.total_prompt_tokens}, Completion tokens: {st.session_state.total_completion_tokens}")  # Debug log
                 update_token_display()  # Update display after chat response
 
