@@ -1,0 +1,8 @@
+openai
+streamlit
+chromadb
+tiktoken
+python-dotenv
+firecrawl-py
+tqdm
+watchdog
