@@ -3,10 +3,14 @@ Vector database management using ChromaDB.
 """
 import os
 import chromadb
+import numpy as np
 from chromadb.config import Settings
 from pathlib import Path
-from typing import List, Tuple, Dict, Any
+from typing import List, Tuple, Dict, Any, Union
 from .embeddings import EmbeddingGenerator
+
+# Update ImageDType to use float64 instead of float_
+ImageDType = Union[np.uint8, np.int64, np.float64]
 
 class VectorStore:
     """Manages vector database operations using ChromaDB."""
