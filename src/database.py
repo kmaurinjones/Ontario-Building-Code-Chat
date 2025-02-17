@@ -23,24 +23,34 @@ class VectorStore:
         self.embedding_generator = EmbeddingGenerator()
         
         # Initialize ChromaDB with persistence
-        self.client = chromadb.Client(path=str(self.db_path))
+        self.client = chromadb.PersistentClient(
+            path=str(self.db_path),
+            settings=Settings(
+                allow_reset=True,
+                anonymized_telemetry=False
+            )
+        )
         
+        # Reset existing collection if dimensions don't match
         try:
-            # Try to get existing collection
-            self.collection = self.client.get_collection(
-                name="building_code",
-                embedding_function=None  # We handle embeddings separately
-            )
-        except ValueError:
+            self.collection = self.client.get_collection(name="building_code")
+            # If collection exists but dimensions don't match, reset it
+            if self.collection.metadata.get("dimension") != self.emb_dim:
+                self.client.delete_collection("building_code")
+                self.collection = self._create_collection()
+        except:
             # Collection doesn't exist, create new one
-            self.collection = self.client.create_collection(
-                name="building_code",
-                embedding_function=None,  # We handle embeddings separately
-                metadata={
-                    "description": "Ontario Building Code content",
-                    "dimension": self.emb_dim  # text-embedding-3-small dimension
-                }
-            )
+            self.collection = self._create_collection()
+
+    def _create_collection(self):
+        """Creates a new collection with correct embedding dimensions."""
+        return self.client.create_collection(
+            name="building_code",
+            metadata={
+                "description": "Ontario Building Code content",
+                "dimension": self.emb_dim  # text-embedding-3-small dimension
+            }
+        )
     
     def add_chunks(self, chunks: List[Tuple[str, int]], embeddings: List[List[float]]) -> None:
         """
