@@ -22,9 +22,9 @@ class VectorStore:
         self.emb_dim = 1536  # text-embedding-3-small dimension
         self.embedding_generator = EmbeddingGenerator()
         
-        self.client = chromadb.PersistentClient(
-            path=str(db_path),
-            settings=Settings(
+        self.client = chromadb.Client(
+            Settings(
+                persist_directory=str(db_path),
                 allow_reset=True,
                 anonymized_telemetry=False
             )
