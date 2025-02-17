@@ -4,8 +4,9 @@
 1. Create a Streamlit-based conversational interface for the Ontario Building Code
 2. Implement efficient text extraction and processing from the specified webpage
 3. Utilize vector database (ChromaDB) for storing and retrieving relevant information
-4. Provide real-time chat interactions using GPT-4-mini
+4. Provide real-time chat interactions using gpt-4o-mini
 5. Implement basic security measures to control access
+6. Maintain accurate token usage tracking and cost estimation
 
 ## Components
 1. Web Scraping
@@ -13,15 +14,17 @@
    - Parse all text content from the webpage
 
 2. Text Processing
-   - Chunk text into 20k character segments with 1k overlap
+   - Chunk text into 1000 token segments with 500 token overlap
    - Prepare text for embedding
-   - Query expansion for improved search relevance
+   - Enhanced query expansion (10 queries per user input)
+   - Optimized context window management
 
 3. Vector Database
-   - Implement ChromaDB for storing embeddings
+   - Implement persistent ChromaDB for storing embeddings
    - Cache text content alongside embeddings
    - Store in data/vector_db directory
    - Efficient chunk retrieval with progress tracking
+   - Persistent storage across application restarts
 
 4. Chat Interface
    - Streamlit-based UI with modern design
@@ -29,11 +32,23 @@
    - Streaming response implementation
    - Interactive query expansion display
    - Progress bars for search operations
-   - Chat history context size management, to mitigate chat context window issues
+   - Chat history context size management
    - Source reference display
+   - Real-time token usage tracking and cost estimation
 
 5. Security Features
-   - Password-protected access
+   - Dual authentication system:
+     - Password-protected access with app password
+     - OpenAI API key authentication for custom keys
    - Session-based authentication
    - Secure password hashing
    - Persistent authentication across page reloads
+   - Dynamic API key management
+   - API key validation system
+
+6. Performance Monitoring
+   - Token usage tracking
+   - Cost estimation
+   - Query expansion effectiveness monitoring
+   - Context window optimization
+   - API key usage tracking

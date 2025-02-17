@@ -8,13 +8,13 @@ from typing import List, Tuple
 import tiktoken
 from tqdm import tqdm
 
-def get_token_encoder(model: str = "gpt-4") -> tiktoken.Encoding:
+def get_token_encoder(model: str = "gpt-4o-mini") -> tiktoken.Encoding:
     """
     Get the token encoder for a specific model.
     
     Parameters
     ----------
-    model : str, default="gpt-4"
+    model : str, default="gpt-4o-mini"
         The model to get the encoder for
         
     Returns
@@ -24,7 +24,7 @@ def get_token_encoder(model: str = "gpt-4") -> tiktoken.Encoding:
     """
     return tiktoken.encoding_for_model(model)
 
-def count_tokens(text: str, model: str = "gpt-4") -> int:
+def count_tokens(text: str, model: str = "gpt-4o-mini") -> int:
     """
     Count the number of tokens in a text string.
     
@@ -32,7 +32,7 @@ def count_tokens(text: str, model: str = "gpt-4") -> int:
     ----------
     text : str
         The text to count tokens for
-    model : str, default="gpt-4"
+    model : str, default="gpt-4o-mini"
         The model to use for token counting
         
     Returns
@@ -43,7 +43,7 @@ def count_tokens(text: str, model: str = "gpt-4") -> int:
     encoding = get_token_encoder(model)
     return len(encoding.encode(text))
 
-def chunk_text(text: str, max_tokens: int = 8000, overlap_tokens: int = 200, 
+def chunk_text(text: str, max_tokens: int = 1000, overlap_tokens: int = 500, 
                model: str = "gpt-4o-mini") -> List[Tuple[str, int]]:
     """
     Chunks text into smaller segments based on token count with overlap.
@@ -52,9 +52,9 @@ def chunk_text(text: str, max_tokens: int = 8000, overlap_tokens: int = 200,
     ----------
     text : str
         Input text to chunk
-    max_tokens : int, default=8000
+    max_tokens : int, default=1000
         Maximum number of tokens per chunk
-    overlap_tokens : int, default=200
+    overlap_tokens : int, default=500
         Number of tokens to overlap between chunks
     model : str, default="gpt-4o-mini"
         The model to use for token counting

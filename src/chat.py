@@ -2,11 +2,12 @@
 Chat functionality using OpenAI's API.
 """
 from openai import OpenAI
-from typing import Generator, List, Dict, Optional, Tuple
+from typing import Generator, List, Dict, Optional, Tuple, Union
 import os
 from .scraper import WebScraper
 from .database import VectorStore
 from .embeddings import EmbeddingGenerator
+from .utils.token_counter import count_tokens
 
 class ChatBot:
     """Manages chat interactions using OpenAI's API."""
@@ -20,6 +21,7 @@ class ChatBot:
         vector_store : VectorStore, optional
             Existing VectorStore instance to use. If None, creates a new one.
         """
+        # Initialize OpenAI client with the current API key (which may have been updated during auth)
         self.client = OpenAI()
         self.model = "gpt-4o-mini"
         
@@ -131,16 +133,27 @@ class ChatBot:
             
         Yields
         ------
-        str
-            Chunks of the response text
+        Union[str, Dict[str, int]]
+            Either:
+            - Chunks of the response text
+            - Final dictionary with token usage statistics (as last yield)
         """
         try:
             # Process the last user message with RAG
             if messages[-1]['role'] == 'user':
                 messages, original_query = self.process_message(messages[-1]['content'], messages)
             
-            # Get model response
-            response = self.client.chat.completions.create(
+            # First, get token count for the input
+            input_tokens = self.client.chat.completions.create(
+                model=self.model,
+                messages=messages,
+                stream=False,
+                max_tokens=1  # Minimal completion to just get input token count
+            )
+            prompt_tokens = input_tokens.usage.prompt_tokens
+            
+            # Now stream the actual response
+            response_stream = self.client.chat.completions.create(
                 model=self.model,
                 messages=messages,
                 stream=True
@@ -148,7 +161,7 @@ class ChatBot:
             
             # Collect full response while streaming
             full_response = ""
-            for chunk in response:
+            for chunk in response_stream:
                 delta = chunk.choices[0].delta
                 if hasattr(delta, 'content') and delta.content is not None:
                     full_response += delta.content
@@ -157,8 +170,24 @@ class ChatBot:
             # Store the complete model response
             self.last_model_response = full_response
             
+            # Get a non-streaming version of the same response to get accurate token counts
+            final_response = self.client.chat.completions.create(
+                model=self.model,
+                messages=messages,
+                stream=False
+            )
+            
+            # Yield the token usage as the final item
+            token_usage = {
+                "prompt_tokens": prompt_tokens,
+                "completion_tokens": final_response.usage.completion_tokens,
+                "total_tokens": prompt_tokens + final_response.usage.completion_tokens
+            }
+            yield token_usage
+            
             # Update chat history to use minimal context
             messages = self.update_chat_history(messages)
                     
         except Exception as e:
             yield f"Error: {str(e)}"
+            yield {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}

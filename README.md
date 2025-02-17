@@ -10,13 +10,17 @@ An interactive AI-powered chat interface for navigating and understanding the On
   - Vector-based semantic search using ChromaDB
   - Progress tracking for search operations
 - **Context-Aware Responses**: Utilizes gpt-4o-mini for generating accurate, contextual answers
-- **Security**: Password-protected access with session persistence
+- **Flexible Authentication**:
+  - Password-protected access with app password
+  - OpenAI API key authentication for custom billing
+  - Session persistence for both methods
 - **Source References**: Displays relevant sections from the building code
 - **User-Friendly Features**:
   - Expandable search query display
   - Progress bars for operations
   - Word count for retrieved sections
   - Chat history management
+  - Token usage and cost tracking
 
 ## 🚀 Getting Started
 
@@ -49,7 +53,7 @@ uv pip install -r requirements.txt
 cp .env.example .env
 ```
 Edit `.env` with your configuration:
-- `OPENAI_API_KEY`: Your OpenAI API key
+- `OPENAI_API_KEY`: Your OpenAI API key (default key for app password users)
 - `APP_PASSWORD`: Password for accessing the application
 
 ### Running the Application
@@ -63,9 +67,14 @@ The application will be available at `http://localhost:8501` by default.
 
 ## 🔒 Security
 
-- Password protection with secure hashing
+- Dual authentication system:
+  - App password authentication (uses default API key)
+  - OpenAI API key authentication (uses user's API key)
 - Session-based authentication
+- Secure password hashing
 - Persistent authentication across page reloads
+- Dynamic API key management
+- API key validation
 
 ## 📚 Data Source
 

@@ -9,6 +9,7 @@ class EmbeddingGenerator:
     """Handles the generation of embeddings using OpenAI's API."""
     
     def __init__(self):
+        # Initialize OpenAI client with the current API key (which may have been updated during auth)
         self.client = OpenAI()
         self.model = "text-embedding-3-small"
     

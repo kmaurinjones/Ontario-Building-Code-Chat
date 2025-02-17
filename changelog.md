@@ -1,5 +1,33 @@
 # Changelog
 
+## [0.2.2] - 20240320153000
+### Added
+- Dual authentication system:
+  - Support for app password authentication
+  - Support for custom OpenAI API key authentication
+- Dynamic API key management for cost allocation
+- Validation system for OpenAI API keys
+- Automatic API key switching mechanism
+
+### Changed
+- Updated authentication UI to support both password and API key input
+- Modified OpenAI client initialization to use custom API keys when provided
+- Enhanced error messaging for invalid credentials
+
+### To Do
+- Implement rate limiting
+- Add user session analytics
+- Enhance error handling for edge cases
+- Add support for multiple building code versions
+
+## [0.2.1] - 20240320143000
+### Changed
+- Optimized text chunking parameters:
+  - Default chunk size reduced to 1000 tokens
+  - Overlap increased to 500 tokens
+- Upgraded to gpt-4o-mini model for improved performance
+- Added cumulative session input/output token counting + price estimation and display in sidebar
+
 ## [0.2.0] - 20240319180000
 ### Added
 - Password protection system with session persistence
