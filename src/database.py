@@ -23,9 +23,9 @@ class VectorStore:
         self.embedding_generator = EmbeddingGenerator()
         
         # Initialize ChromaDB with persistence
-        self.client = chromadb.PersistentClient(
-            path=str(self.db_path),
-            settings=Settings(
+        self.client = chromadb.Client(
+            Settings(
+                persist_directory=str(self.db_path),
                 allow_reset=True,
                 anonymized_telemetry=False
             )
