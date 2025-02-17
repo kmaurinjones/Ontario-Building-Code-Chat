@@ -9,7 +9,7 @@ An interactive AI-powered chat interface for navigating and understanding the On
   - Query expansion for improved search relevance
   - Vector-based semantic search using ChromaDB
   - Progress tracking for search operations
-- **Context-Aware Responses**: Utilizes GPT-4-mini for generating accurate, contextual answers
+- **Context-Aware Responses**: Utilizes gpt-4o-mini for generating accurate, contextual answers
 - **Security**: Password-protected access with session persistence
 - **Source References**: Displays relevant sections from the building code
 - **User-Friendly Features**:
