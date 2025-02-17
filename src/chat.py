@@ -171,19 +171,14 @@ class ChatBot:
             # Store the complete model response
             self.last_model_response = full_response
             
-            # Get a non-streaming version of the same response to get accurate token counts
-            final_response = self.client.chat.completions.create(
-                model=self.model,
-                messages=messages,
-                stream=False,
-                temperature=0
-            )
+            # Count completion tokens locally
+            completion_tokens = count_tokens(full_response, self.model)
             
             # Yield the token usage as the final item
             token_usage = {
                 "prompt_tokens": prompt_tokens,
-                "completion_tokens": final_response.usage.completion_tokens,
-                "total_tokens": prompt_tokens + final_response.usage.completion_tokens
+                "completion_tokens": completion_tokens,
+                "total_tokens": prompt_tokens + completion_tokens
             }
             yield token_usage
             
