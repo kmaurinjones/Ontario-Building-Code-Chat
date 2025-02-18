@@ -152,8 +152,8 @@ def update_token_display():
     output_cost = (st.session_state.total_output_tokens / 1_000_000) * 0.60
     total_cost = input_cost + output_cost
     
-    # Calculate total processed tokens (excluding double-counted RAG context)
-    total_processed = st.session_state.total_input_tokens + st.session_state.total_output_tokens
+    # Calculate total processed tokens (excluding RAG context from input tokens to avoid double counting)
+    total_processed = (st.session_state.total_input_tokens - st.session_state.total_rag_context_tokens) + st.session_state.total_output_tokens
     
     # Update the token display
     if st.session_state.token_display is not None:
@@ -165,8 +165,8 @@ def update_token_display():
         **Total Conversation Tokens:** {st.session_state.total_conversation_tokens:,}  
         **Total Document Context Tokens:** {st.session_state.total_rag_context_tokens:,}  
         
-        **Input Tokens:** {st.session_state.total_input_tokens:,}  
-        **Output Tokens:** {st.session_state.total_output_tokens:,}  
+        **Input Tokens:** {st.session_state.total_input_tokens - st.session_state.total_rag_context_tokens:,}  
+        **Output Tokens:** {st.session_state.total_output_tokens:,}
         
         **Estimated Cost:** ${total_cost:.4f} USD
         - Input: ${input_cost:.4f}
@@ -265,9 +265,6 @@ def process_message(query: str):
     col1, col2 = st.columns([3, 1])
     
     with col1:
-        # Reset RAG context tokens for this turn
-        st.session_state.total_rag_context_tokens = 0
-        
         # Store original query for later
         original_query = query
         
