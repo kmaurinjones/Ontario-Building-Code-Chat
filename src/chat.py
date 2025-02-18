@@ -38,7 +38,11 @@ class ChatBot:
         # Get content and update vector store if needed
         content = self.scraper.get_content()
         if not self.vector_store.collection.count():
-            chunks = self.scraper.process_content(content)
+            chunks = self.scraper.process_content(
+                content,
+                max_tokens=2000,
+                overlap_tokens=200
+            )
             embeddings = self.embedding_generator.generate_embeddings([chunk[0] for chunk in chunks])
             self.vector_store.add_chunks(chunks, embeddings)
         
@@ -64,6 +68,8 @@ class ChatBot:
             You need to first determine if the user is asking anything about the building code. If they are, you need to find the best answer to their question possible and always site relevant sections, subsections, or subsections as much as you can so that they can navigate back to and check your response on the website.
             If you do have any relevant sections or subsections or tables or any kind of reference citation that you refer to in your response you must bold it using markdown bolding. Example: **Section 1.2.3**
             You ALWAYS provided citations for any information you provide. This is critical. You also ALWAYS provided a small sample of exact text, sections to look within, or tables to look within for the user to verify your response on the website.
+            Don't say things like "it seems like you're inquiring about x" - just be confident and answer the question.
+            More importantly, if the information to answer the user's question does not exist within the provided context, just say so. Don't make up information or guess.
 
             --------------------------------
             <|context|>

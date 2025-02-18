@@ -14,7 +14,7 @@
    - Parse all text content from the webpage
 
 2. Text Processing
-   - Chunk text into 1000 token segments with 500 token overlap
+   - Chunk text into 1000 token segments with 200 token overlap
    - Prepare text for embedding
    - Enhanced query expansion (10 queries per user input)
    - Optimized context window management

@@ -25,6 +25,7 @@ class WebScraper:
         url : str
             The URL to scrape
         """
+        print("\n[WebScraper] Initializing with URL:", url)
         self.url = url
         self.content_manager = ContentManager()
         
@@ -35,6 +36,7 @@ class WebScraper:
             raise ValueError("FIRECRAWL_API_KEY not found in environment variables")
             
         self.app = FirecrawlApp(api_key=api_key)
+        print("[WebScraper] Initialization complete")
     
     def get_content(self, force_update: bool = False) -> str:
         """
@@ -50,14 +52,32 @@ class WebScraper:
         str
             Building code content
         """
+        print(f"\n[WebScraper] Getting content (force_update={force_update})")
+        
         if not force_update and not self.content_manager.needs_update():
+            print("[WebScraper] Checking cache...")
             cached_content = self.content_manager.load_content()
             if cached_content:
+                content_length = len(cached_content)
+                print(f"[WebScraper] Found cached content ({content_length} characters)")
                 return cached_content
+            print("[WebScraper] No cached content found")
+        else:
+            if force_update:
+                print("[WebScraper] Force update requested")
+            else:
+                print("[WebScraper] Cache needs update")
         
         # Fetch new content if needed
+        print("[WebScraper] Fetching new content from web...")
         content = self.fetch_content()
+        content_length = len(content)
+        print(f"[WebScraper] Fetched {content_length} characters of content")
+        
+        print("[WebScraper] Saving content to cache...")
         self.content_manager.save_content(content)
+        print("[WebScraper] Content saved")
+        
         return content
     
     def fetch_content(self) -> str:
@@ -75,6 +95,7 @@ class WebScraper:
             If the API request fails or returns an error
         """
         try:
+            print("[WebScraper] Making API request to Firecrawl...")
             response = self.app.scrape_url(
                 url=self.url,
                 params={'formats': ['markdown']}
@@ -82,13 +103,16 @@ class WebScraper:
             
             if not response.get('markdown'):
                 raise ValueError("No markdown content found in API response")
-                
+            
+            content_length = len(response['markdown'])
+            print(f"[WebScraper] API request successful ({content_length} characters)")
             return response['markdown']
             
         except Exception as e:
+            print(f"[WebScraper] Error fetching content: {str(e)}")
             raise Exception(f"Failed to fetch content: {str(e)}")
     
-    def process_content(self, text: str, max_tokens: int = 8000, overlap_tokens: int = 200) -> List[Tuple[str, int]]:
+    def process_content(self, text: str, max_tokens: int = 2000, overlap_tokens: int = 200) -> List[Tuple[str, int]]:
         """
         Process and chunk the content into token-sized pieces.
         
@@ -96,7 +120,7 @@ class WebScraper:
         ----------
         text : str
             Input text to process
-        max_tokens : int, default=8000
+        max_tokens : int, default=2000
             Maximum number of tokens per chunk
         overlap_tokens : int, default=200
             Number of tokens to overlap between chunks
@@ -106,27 +130,14 @@ class WebScraper:
         List[Tuple[str, int]]
             List of (chunk_text, token_count) tuples
         """
-        return chunk_text(text, max_tokens, overlap_tokens)
-
-# Sample code to test the scraper
-if __name__ == "__main__":
-    scraper = WebScraper("https://www.ontario.ca/laws/regulation/120332/v25")
-    
-    print("Getting content...")
-    content = scraper.get_content()
-    print(f"\nContent length: {len(content)}")
-    
-    print("\nFirst 500 characters of content:")
-    print("-" * 80)
-    print(content[:500])
-    print("-" * 80)
-    
-    chunks = scraper.process_content(
-        text=content,
-        max_tokens=8000,
-        overlap_tokens=200
-    )
-    
-    print(f"\nTotal chunks: {len(chunks)}")
-    total_tokens = sum(chunk[1] for chunk in chunks)
-    print(f"Total tokens: {total_tokens:,}")
+        print(f"\n[WebScraper] Processing content into chunks (max_tokens={max_tokens}, overlap={overlap_tokens})")
+        chunks = chunk_text(text, max_tokens, overlap_tokens)
+        print(f"[WebScraper] Created {len(chunks)} chunks")
+        
+        # Print some chunk statistics
+        total_tokens = sum(chunk[1] for chunk in chunks)
+        avg_tokens = total_tokens / len(chunks)
+        print(f"[WebScraper] Total tokens: {total_tokens}")
+        print(f"[WebScraper] Average tokens per chunk: {avg_tokens:.2f}")
+        
+        return chunks

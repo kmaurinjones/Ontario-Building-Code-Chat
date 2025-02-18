@@ -225,7 +225,7 @@ def get_relevant_chunks(query: str, expanded_queries: List[str], k: int = 2) -> 
     total_queries = len(expanded_queries) + 1  # +1 for original query
     
     # Maximum tokens for context (leaving room for the rest of the prompt)
-    MAX_CONTEXT_TOKENS = 100000  # This leaves ~28k tokens for the rest of the conversation
+    MAX_CONTEXT_TOKENS = 120000  # This leaves ~8k tokens for the rest of the conversation
     current_tokens = 0
     
     # Search with all queries
@@ -287,7 +287,7 @@ def process_message(query: str):
             expanded_queries, query_tokens = st.session_state.query_expander.generate(
                 query=query,
                 conversation_history=conversation_history,
-                n_queries=4  # Reduced from 9 to 4 to prevent context overload
+                n_queries=9  # 9 extra queries are generated, per user input
             )
             # Count query expansion output tokens
             st.session_state.total_processed_tokens += query_tokens["completion_tokens"]
@@ -308,7 +308,7 @@ def process_message(query: str):
             chunks = get_relevant_chunks(
                 query=query, 
                 expanded_queries=expanded_queries, 
-                k=3
+                k=5 # return 5 chunks per query
             )
             
             if chunks:
@@ -381,7 +381,7 @@ def process_message(query: str):
 # Main content area
 st.title("🏗️ Ontario Building Code Assistant")
 st.markdown(
-    "Ask questions about the Ontario Building Code, and I'll help you find the relevant information. "
+    "Ask questions about the Ontario Building Code (v25), and I'll help you find the relevant information. "
     "I'll search through the code and provide accurate, sourced answers. \n\n"
     "*Always check the official code to verify the answer provided here.*"
 )
