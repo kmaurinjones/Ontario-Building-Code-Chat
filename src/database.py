@@ -25,8 +25,14 @@ class VectorStore:
         self.embedding_generator = EmbeddingGenerator()
         
         # Initialize ChromaDB with persistence
-        print("[VectorStore] Initializing PersistentClient...")
-        self.client = chromadb.PersistentClient(path=str(self.db_path))
+        print("[VectorStore] Initializing ChromaDB client...")
+        self.client = chromadb.Client(
+            Settings(
+                chroma_db_impl="duckdb+parquet",
+                persist_directory=str(self.db_path),
+                anonymized_telemetry=False
+            )
+        )
         print("[VectorStore] ChromaDB client initialized with persistence")
         
         # Reset existing collection if dimensions don't match
@@ -80,7 +86,10 @@ class VectorStore:
             metadatas=metadatas
         )
         
-        print(f"[VectorStore] Added {len(chunks)} chunks")
+        # For ChromaDB 0.3.29, persist after adding chunks
+        print("[VectorStore] Persisting changes to disk...")
+        self.client.persist()
+        print(f"[VectorStore] Added and persisted {len(chunks)} chunks")
         print(f"[VectorStore] Total documents in collection: {self.collection.count()}")
     
     def query(self, query_texts: List[str], n_results: int = 5) -> Dict[str, Any]:
