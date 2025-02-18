@@ -10,6 +10,12 @@ An interactive AI-powered chat interface for navigating and understanding the On
   - Vector-based semantic search using ChromaDB
   - Progress tracking for search operations
 - **Context-Aware Responses**: Utilizes gpt-4o-mini for generating accurate, contextual answers
+- **Comprehensive Token Tracking**:
+  - Total processed tokens across all operations
+  - Conversation-only tokens (excluding RAG context)
+  - Document context tokens from RAG retrieval
+  - Separate input/output token tracking
+  - Real-time cost estimation based on token types
 - **Flexible Authentication**:
   - Password-protected access with app password
   - OpenAI API key authentication for custom billing
@@ -104,3 +110,32 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🔄 Changelog
 
 See [changelog.md](changelog.md) for a detailed history of changes and updates.
+
+## 📊 Token Counting System
+
+The application implements a comprehensive token counting system that tracks various types of tokens:
+
+### Token Types
+- **Total Processed Tokens**: All tokens processed by AI throughout the session
+- **Conversation Tokens**: Tokens in the cleaned conversation history (system prompt + chat)
+- **Document Context Tokens**: Tokens from RAG context retrieval
+- **Input/Output Tokens**: Separate tracking for model input and output
+
+### Token Counting Process
+1. **Query Expansion**:
+   - Counts tokens in conversation history + query (input)
+   - Counts tokens in expanded queries (output)
+
+2. **RAG Context**:
+   - Counts tokens in retrieved document chunks
+   - Tracks separately from conversation tokens
+
+3. **Chat Completion**:
+   - Counts tokens in full prompt with context (input)
+   - Counts tokens in model response (output)
+   - Updates conversation tokens without RAG context
+
+### Cost Calculation
+- Input tokens: $0.15 per 1M tokens
+- Output tokens: $0.60 per 1M tokens
+- Real-time cost estimation in sidebar

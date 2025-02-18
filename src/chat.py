@@ -33,6 +33,7 @@ class ChatBot:
         # Temporary storage for latest interaction
         self.last_user_query: Optional[str] = None
         self.last_model_response: Optional[str] = None
+        self.total_processed_tokens = 0
         
         # Get content and update vector store if needed
         content = self.scraper.get_content()
@@ -143,16 +144,11 @@ class ChatBot:
             if messages[-1]['role'] == 'user':
                 messages, original_query = self.process_message(messages[-1]['content'], messages)
             
-            # First, get token count for the input
-            input_tokens = self.client.chat.completions.create(
-                model=self.model,
-                messages=messages,
-                stream=False,
-                max_tokens=1  # Minimal completion to just get input token count
-            )
-            prompt_tokens = input_tokens.usage.prompt_tokens
+            # Count input tokens locally
+            prompt_text = "\n".join([f"{msg['role']}: {msg['content']}" for msg in messages])
+            prompt_tokens = count_tokens(prompt_text, self.model)
             
-            # Now stream the actual response
+            # Stream the response
             response_stream = self.client.chat.completions.create(
                 model=self.model,
                 messages=messages,

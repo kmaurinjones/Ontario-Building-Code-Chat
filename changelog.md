@@ -1,5 +1,35 @@
 # Changelog
 
+## [0.2.3] - 20240320163000
+### Added
+- Comprehensive token counting system:
+  - Total processed tokens tracking
+  - Conversation tokens tracking (excluding RAG)
+  - Document context tokens tracking
+  - Separate input/output token tracking
+- Local token counting implementation:
+  - Query expansion token tracking
+  - RAG context token tracking
+  - Chat completion token tracking
+- Enhanced cost estimation:
+  - Real-time calculation
+  - Separate input/output pricing
+  - Cumulative session tracking
+- Updated token display in sidebar:
+  - Token usage breakdown
+  - Cost breakdown by token type
+  - Session total cost estimation
+
+### Changed
+- Removed dependency on OpenAI API token counting
+- Improved token counting accuracy
+- Enhanced cost estimation precision
+
+### To Do
+- Add token usage analytics over time
+- Implement token usage optimization suggestions
+- Add token usage limits and warnings
+
 ## [0.2.2] - 20240320153000
 ### Added
 - Dual authentication system:
@@ -63,3 +93,4 @@
 - Create text chunking system
 - Set up ChromaDB integration
 - Develop Streamlit interface
+

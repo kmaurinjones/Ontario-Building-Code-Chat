@@ -110,49 +110,50 @@ def initialize_query_expander():
     return QueryExpander()
 
 @st.cache_resource
-def initialize_chatbot(_vector_store):
+def initialize_chatbot():
     """Initialize and cache the chatbot instance."""
-    return ChatBot(vector_store=_vector_store)
+    vector_store = initialize_vector_store()
+    return ChatBot(vector_store=vector_store)
 
 # Initialize session state
 if "messages" not in st.session_state:
     st.session_state.messages = []
     
 # Initialize token counters
-if "total_prompt_tokens" not in st.session_state:
-    st.session_state.total_prompt_tokens = 0
-if "total_completion_tokens" not in st.session_state:
-    st.session_state.total_completion_tokens = 0
 if "total_processed_tokens" not in st.session_state:
     st.session_state.total_processed_tokens = 0
-if "current_conversation_tokens" not in st.session_state:
-    st.session_state.current_conversation_tokens = 0
+if "total_conversation_tokens" not in st.session_state:
+    st.session_state.total_conversation_tokens = 0
+if "total_rag_context_tokens" not in st.session_state:
+    st.session_state.total_rag_context_tokens = 0
+if "total_input_tokens" not in st.session_state:
+    st.session_state.total_input_tokens = 0
+if "total_output_tokens" not in st.session_state:
+    st.session_state.total_output_tokens = 0
 
 # Initialize token display placeholder in session state
 if "token_display" not in st.session_state:
     st.session_state.token_display = None
 
-# Initialize vector store first
-if "vector_store" not in st.session_state:
-    with st.spinner("Initializing vector database..."):
-        st.session_state.vector_store = initialize_vector_store()
-
-# Initialize chatbot with vector store
+# Initialize chatbot
 if "chatbot" not in st.session_state:
     with st.spinner("Initializing chatbot (this may take a few minutes on first run)..."):
-        st.session_state.chatbot = initialize_chatbot(st.session_state.vector_store)
+        st.session_state.chatbot = initialize_chatbot()
 
 # Initialize query expander
 if "query_expander" not in st.session_state:
-    with st.spinner("Setting up query expansion..."):
+    with st.spinner("Initializing query expander..."):
         st.session_state.query_expander = initialize_query_expander()
 
 def update_token_display():
     """Update the token usage display in the sidebar."""
-    # Calculate costs
-    prompt_cost = (st.session_state.total_prompt_tokens / 1_000_000) * 0.15
-    completion_cost = (st.session_state.total_completion_tokens / 1_000_000) * 0.60
-    total_cost = prompt_cost + completion_cost
+    # Calculate costs (GPT-4 pricing)
+    input_cost = (st.session_state.total_input_tokens / 1_000_000) * 0.15
+    output_cost = (st.session_state.total_output_tokens / 1_000_000) * 0.60
+    total_cost = input_cost + output_cost
+    
+    # Calculate total processed tokens (excluding double-counted RAG context)
+    total_processed = st.session_state.total_input_tokens + st.session_state.total_output_tokens
     
     # Update the token display
     if st.session_state.token_display is not None:
@@ -160,16 +161,16 @@ def update_token_display():
         st.session_state.token_display.markdown(f"""
         ### Token Usage
         
-        **Total Processed Tokens:** {st.session_state.total_processed_tokens:,}  
-        **Current Conversation Tokens:** {st.session_state.current_conversation_tokens:,}  
+        **Total Processed Tokens:** {total_processed:,}  
+        **Total Conversation Tokens:** {st.session_state.total_conversation_tokens:,}  
+        **Total Document Context Tokens:** {st.session_state.total_rag_context_tokens:,}  
         
-        **Input Tokens:** {st.session_state.total_prompt_tokens:,}  
-        **Output Tokens:** {st.session_state.total_completion_tokens:,}  
-        **Total Tokens:** {st.session_state.total_prompt_tokens + st.session_state.total_completion_tokens:,}
+        **Input Tokens:** {st.session_state.total_input_tokens:,}  
+        **Output Tokens:** {st.session_state.total_output_tokens:,}  
         
         **Estimated Cost:** ${total_cost:.4f} USD
-        - Input: ${prompt_cost:.4f}
-        - Output: ${completion_cost:.4f}
+        - Input: ${input_cost:.4f}
+        - Output: ${output_cost:.4f}
         """)
 
 # Initialize the sidebar
@@ -185,10 +186,11 @@ with st.sidebar:
     st.divider()
     if st.button("Clear Chat History", type="secondary"):
         st.session_state.messages = []
-        st.session_state.total_prompt_tokens = 0
-        st.session_state.total_completion_tokens = 0
+        st.session_state.total_input_tokens = 0
+        st.session_state.total_output_tokens = 0
         st.session_state.total_processed_tokens = 0
-        st.session_state.current_conversation_tokens = 0
+        st.session_state.total_conversation_tokens = 0
+        st.session_state.total_rag_context_tokens = 0
         st.rerun()
     
     st.divider()
@@ -228,7 +230,7 @@ def get_relevant_chunks(query: str, expanded_queries: List[str], k: int = 2) -> 
     
     # Search with all queries
     for i, q in enumerate([query] + expanded_queries):
-        results = st.session_state.vector_store.query(
+        results = st.session_state.chatbot.vector_store.query(
             query_texts=[q],
             n_results=k
         )
@@ -263,8 +265,25 @@ def process_message(query: str):
     col1, col2 = st.columns([3, 1])
     
     with col1:
+        # Reset RAG context tokens for this turn
+        st.session_state.total_rag_context_tokens = 0
+        
+        # Store original query for later
+        original_query = query
+        
         # Get conversation history (excluding the current query)
         conversation_history = st.session_state.messages[:-1] if len(st.session_state.messages) > 0 else None
+        
+        # Create query expansion prompt
+        query_expansion_prompt = ""
+        if conversation_history:
+            query_expansion_prompt = "\n".join([f"{msg['role']}: {msg['content']}" for msg in conversation_history])
+        query_expansion_prompt += f"\nuser: {query}"
+        
+        # Count query expansion input tokens and add to total processed
+        query_expansion_tokens = count_tokens(query_expansion_prompt)
+        st.session_state.total_processed_tokens += query_expansion_tokens
+        st.session_state.total_input_tokens += query_expansion_tokens
         
         # Query expansion with spinner
         with st.spinner("Expanding your query into targeted search terms..."):
@@ -273,13 +292,12 @@ def process_message(query: str):
                 conversation_history=conversation_history,
                 n_queries=4  # Reduced from 9 to 4 to prevent context overload
             )
-            # Update token counts
-            st.session_state.total_prompt_tokens += query_tokens["prompt_tokens"]
-            st.session_state.total_completion_tokens += query_tokens["completion_tokens"]
-            st.session_state.total_processed_tokens += query_tokens["total_tokens"]
-            update_token_display()  # Update display after query expansion
+            # Count query expansion output tokens
+            st.session_state.total_processed_tokens += query_tokens["completion_tokens"]
+            st.session_state.total_output_tokens += query_tokens["completion_tokens"]
+            update_token_display()
         
-        # Check if we got meaningful search queries (more than just the original query)
+        # Check if we got meaningful search queries
         has_meaningful_queries = len(expanded_queries) > 1 and expanded_queries != [query]
         
         if has_meaningful_queries:
@@ -289,20 +307,20 @@ def process_message(query: str):
                 for i, q in enumerate(expanded_queries, 1):
                     st.markdown(f"**{i}.** {q}")
             
-            # Get relevant chunks with progress bar (handled inside function)
+            # Get relevant chunks
             chunks = get_relevant_chunks(
                 query=query, 
                 expanded_queries=expanded_queries, 
-                k=3 # get top 5 chunks per query (before deduplication)
+                k=3
             )
             
-            if chunks:  # Only show if we found relevant sections
+            if chunks:
                 # Calculate total words in chunks
                 total_words = sum(len(chunk.split()) for chunk in chunks)
                 
-                # Count tokens in chunks and add to total processed
-                chunk_tokens = sum(count_tokens(chunk) for chunk in chunks)
-                st.session_state.total_processed_tokens += chunk_tokens
+                # Count RAG context tokens
+                rag_tokens = sum(count_tokens(chunk) for chunk in chunks)
+                st.session_state.total_rag_context_tokens += rag_tokens
                 
                 # Show found sections
                 with st.expander(f"📚 Relevant building code information ({total_words} words)", expanded=False):
@@ -312,16 +330,12 @@ def process_message(query: str):
                         if i < len(chunks):
                             st.divider()
                 
-                # Use chunks as context if we have them
                 context = "\n\n".join(chunks)
             else:
                 context = ""
-                chunk_tokens = 0
         else:
-            # No meaningful queries generated, skip search
             chunks = []
             context = ""
-            chunk_tokens = 0
         
         # Prepare messages for chat
         messages = [
@@ -329,44 +343,42 @@ def process_message(query: str):
             {"role": "user", "content": query}
         ]
         
-        # Calculate current conversation tokens (excluding RAG context)
-        conversation_tokens = sum(count_tokens(msg["content"]) for msg in st.session_state.messages)
-        conversation_tokens += count_tokens(query)  # Add current query
-        st.session_state.current_conversation_tokens = conversation_tokens
+        # Count chat input tokens and add to total processed
+        chat_input = "\n".join([msg["content"] for msg in messages])
+        chat_input_tokens = count_tokens(chat_input)
+        st.session_state.total_processed_tokens += chat_input_tokens
+        st.session_state.total_input_tokens += chat_input_tokens
         
         # Stream response
         with st.spinner("💭 Generating response..."):
             response = ""
             message_placeholder = st.empty()
-            last_chunk = None
             
-            # Create a list to store all chunks
-            chunks = []
             for chunk in st.session_state.chatbot.chat_stream(messages):
-                chunks.append(chunk)
-                if isinstance(chunk, dict):  # This is the token usage info
-                    last_chunk = chunk
-                    print(f"Token usage received: {chunk}")  # Debug log
-                else:  # This is a text chunk
+                if isinstance(chunk, dict):  # Token usage info
+                    continue  # Skip token info from API as we're counting locally
+                else:  # Text chunk
                     response += chunk
                     message_placeholder.markdown(response + "▌")
             message_placeholder.markdown(response)
             
-            # Update token counts if we got usage info
-            if last_chunk and isinstance(last_chunk, dict):
-                print(f"Before update - Prompt tokens: {st.session_state.total_prompt_tokens}, Completion tokens: {st.session_state.total_completion_tokens}")  # Debug log
-                st.session_state.total_prompt_tokens += last_chunk["prompt_tokens"]
-                st.session_state.total_completion_tokens += last_chunk["completion_tokens"]
-                st.session_state.total_processed_tokens += last_chunk["total_tokens"]
-                
-                # Update current conversation tokens with the response
-                st.session_state.current_conversation_tokens += count_tokens(response)
-                
-                print(f"After update - Prompt tokens: {st.session_state.total_prompt_tokens}, Completion tokens: {st.session_state.total_completion_tokens}")  # Debug log
-                update_token_display()  # Update display after chat response
+            # Count response tokens
+            response_tokens = count_tokens(response)
+            st.session_state.total_processed_tokens += response_tokens
+            st.session_state.total_output_tokens += response_tokens
+            
+            # Update conversation tokens (system prompt + cleaned history + current exchange)
+            conversation_tokens = count_tokens(st.session_state.chatbot.generate_system_prompt(""))  # System prompt without RAG
+            for msg in st.session_state.messages:
+                conversation_tokens += count_tokens(msg["content"])
+            conversation_tokens += count_tokens(original_query)  # Original query
+            conversation_tokens += count_tokens(response)  # Current response
+            st.session_state.total_conversation_tokens = conversation_tokens
+            
+            update_token_display()
 
-    # Update chat history
-    st.session_state.messages.append({"role": "user", "content": query})
+    # Update chat history with original query (not the one with RAG context)
+    st.session_state.messages.append({"role": "user", "content": original_query})
     st.session_state.messages.append({"role": "assistant", "content": response})
 
 # Main content area

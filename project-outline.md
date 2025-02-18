@@ -46,9 +46,26 @@
    - Dynamic API key management
    - API key validation system
 
-6. Performance Monitoring
-   - Token usage tracking
-   - Cost estimation
-   - Query expansion effectiveness monitoring
-   - Context window optimization
-   - API key usage tracking
+6. Monitoring
+   - Comprehensive Token Tracking:
+     - Total processed tokens across all operations
+     - Conversation tokens (excluding RAG context)
+     - Document context tokens from RAG retrieval
+     - Separate input/output token tracking
+   - Token Counting Implementation:
+     - Local token counting using tiktoken
+     - Query expansion token tracking
+     - RAG context token tracking
+     - Chat completion token tracking
+   - Cost Estimation:
+     - Real-time cost calculation
+     - Separate input/output token pricing
+     - Cumulative session cost tracking
+   - Display Features:
+     - Token usage breakdown in sidebar
+     - Cost breakdown by token type
+     - Session total cost estimation
+   - Performance Metrics:
+     - Query expansion effectiveness
+     - Context window optimization
+     - API key usage tracking
