@@ -26,12 +26,9 @@ class VectorStore:
         
         # Initialize ChromaDB with persistence
         print("[VectorStore] Initializing ChromaDB client...")
-        self.client = chromadb.Client(
-            Settings(
-                chroma_db_impl="duckdb+parquet",
-                persist_directory=str(self.db_path),
-                anonymized_telemetry=False
-            )
+        self.client = chromadb.PersistentClient(
+            path=str(self.db_path),
+            settings=Settings(anonymized_telemetry=False),
         )
         print("[VectorStore] ChromaDB client initialized with persistence")
         
@@ -86,9 +83,7 @@ class VectorStore:
             metadatas=metadatas
         )
         
-        # For ChromaDB 0.3.29, persist after adding chunks
-        print("[VectorStore] Persisting changes to disk...")
-        self.client.persist()
+        # PersistentClient writes to disk on every add; no explicit persist call
         print(f"[VectorStore] Added and persisted {len(chunks)} chunks")
         print(f"[VectorStore] Total documents in collection: {self.collection.count()}")
     
